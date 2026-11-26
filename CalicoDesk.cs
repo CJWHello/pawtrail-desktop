@@ -39,10 +39,17 @@ namespace PawTrail
                 1046.0 + RowPitch * row + 2.25 * column / BoardColumns);
         }
 
+        // The cat faces the viewer. Turn the layout on the desk plane before
+        // projecting it, so the case and the keycap bevels retain their perspective.
+        private static double CapColumn(KeyCap k)
+        {
+            return BoardColumns - (k.X + .5 * k.W);
+        }
+
         private static Rect CapRect(KeyCap k)
         {
-            double row = k.Y + .5 * k.H;
-            Point center = KeyGridPoint(k.X + .5 * k.W, row);
+            double row = BoardRows - (k.Y + .5 * k.H);
+            Point center = KeyGridPoint(CapColumn(k), row);
             double width = k.W * (49.65 + 3.10 * row / BoardRows) - 3.85;
             double height = k.H * RowPitch - 3.65;
             return new Rect(center.X - width / 2, center.Y - height / 2, width, height);
@@ -102,7 +109,7 @@ namespace PawTrail
         private static void DrawKeycap(DrawingContext dc, KeyCap k, bool pressed, bool rightPaw)
         {
             Rect r = CapRect(k);
-            double topShear = (-54.0 + 3.10 * (k.X + k.W / 2)) / (BoardRows * RowPitch);
+            double topShear = (-54.0 + 3.10 * CapColumn(k)) / (BoardRows * RowPitch);
             dc.PushTransform(new MatrixTransform(1, 0, topShear, 1,
                 r.X - r.Height * topShear / 2, r.Y));
             string edge = pressed ? (rightPaw ? "#9F5670" : "#A46533") : "#777E6C";
@@ -116,8 +123,10 @@ namespace PawTrail
             dc.DrawLine(Outline("#A4FFFDEF", 1.15),
                 new Point(6, insetY + 1.8), new Point(r.Width - 5.4, insetY + 1.8));
             FormattedText label = DeskLegend(k.Label, false);
+            dc.PushTransform(new RotateTransform(180, r.Width / 2, insetY + height / 2));
             dc.DrawText(label, new Point((r.Width - label.Width) / 2,
                 insetY + (height - label.Height) / 2 - .25));
+            dc.Pop();
             dc.Pop();
         }
 
@@ -151,16 +160,16 @@ namespace PawTrail
             {
                 ulong bits = k.Id < 64 ? lowKeys : highKeys;
                 bool pressed = (bits & (1UL << (k.Id & 63))) != 0;
-                if (pressed || (k.Id == leftPawKey && leftPawPress > .08) ||
-                    (k.Id == rightPawKey && rightPawPress > .08))
-                    DrawKeycap(dc, k, true, k.Id == rightPawKey);
+                if (pressed || (k.Id == screenLeftKey && screenLeftPress > .08) ||
+                    (k.Id == screenRightKey && screenRightPress > .08))
+                    DrawKeycap(dc, k, true, k.Id == screenRightKey);
             }
         }
 
         private void DrawKeyFeedback(DrawingContext dc)
         {
-            KeyCap left = leftPawPress > .13 ? KeyboardLayout.Get(leftPawKey) : null;
-            KeyCap right = rightPawPress > .13 ? KeyboardLayout.Get(rightPawKey) : null;
+            KeyCap left = screenLeftPress > .13 ? KeyboardLayout.Get(screenLeftKey) : null;
+            KeyCap right = screenRightPress > .13 ? KeyboardLayout.Get(screenRightKey) : null;
             if (left == null && right == null) return;
 
             // Use window coordinates so the illustration's scale cannot shrink

@@ -22,18 +22,20 @@ namespace PawTrail
         public double Reach { get { return reach; } set { Set(ref reach, Clamp(value, 0, 1)); } }
         bool mouseOnLeft;
         public bool MouseOnLeft { get { return mouseOnLeft; } set { if (mouseOnLeft != value) { mouseOnLeft = value; InvalidateVisual(); } } }
-        int leftPawKey = -1, rightPawKey = -1;
-        double leftPawPress, rightPawPress;
+        int screenLeftKey = -1, screenRightKey = -1;
+        double screenLeftPress, screenRightPress;
         ulong lowKeys, highKeys;
 
         public void SetKeyboardPose(int leftKey, double leftPress, int rightKey, double rightPress, ulong lowKeys, ulong highKeys)
         {
-            if (leftPawKey == leftKey && rightPawKey == rightKey && leftPawPress == leftPress &&
-                rightPawPress == rightPress && this.lowKeys == lowKeys && this.highKeys == highKeys) return;
-            leftPawKey = leftKey;
-            rightPawKey = rightKey;
-            leftPawPress = Clamp(leftPress, 0, 1);
-            rightPawPress = Clamp(rightPress, 0, 1);
+            // Input uses the typist's hands. The cat faces us, so its left paw
+            // appears on the right of the portrait and its right paw on the left.
+            if (screenRightKey == leftKey && screenLeftKey == rightKey && screenRightPress == leftPress &&
+                screenLeftPress == rightPress && this.lowKeys == lowKeys && this.highKeys == highKeys) return;
+            screenRightKey = leftKey;
+            screenLeftKey = rightKey;
+            screenRightPress = Clamp(leftPress, 0, 1);
+            screenLeftPress = Clamp(rightPress, 0, 1);
             this.lowKeys = lowKeys;
             this.highKeys = highKeys;
             InvalidateVisual();
@@ -215,12 +217,12 @@ namespace PawTrail
             if (mouseOnLeft) tailTip.X = MirrorWidth - tailTip.X;
 
             // Paw assignments are in screen order. Mirroring the portrait swaps which arm carries each assignment.
-            Point left = TypingPaw(LeftRest, new Point(462,1150), mouseOnLeft ? rightPawKey : leftPawKey,
-                mouseOnLeft ? rightPawPress : leftPawPress);
-            Point right = TypingPaw(RightRest, new Point(1001,1174), mouseOnLeft ? leftPawKey : rightPawKey,
-                mouseOnLeft ? leftPawPress : rightPawPress);
+            Point left = TypingPaw(LeftRest, new Point(462,1150), mouseOnLeft ? screenRightKey : screenLeftKey,
+                mouseOnLeft ? screenRightPress : screenLeftPress);
+            Point right = TypingPaw(RightRest, new Point(1001,1174), mouseOnLeft ? screenLeftKey : screenRightKey,
+                mouseOnLeft ? screenLeftPress : screenRightPress);
             double lean = Clamp((left.X - LeftRest.X + right.X - RightRest.X) / 9, -78, 78) * (1 - doze);
-            double drop = (reach * 16 + Math.Max(leftPawPress,rightPawPress) * 9) * (1 - doze);
+            double drop = (reach * 16 + Math.Max(screenLeftPress,screenRightPress) * 9) * (1 - doze);
             var body = Matrix.Identity;
             body.ScaleAt(1 + .035 * doze, 1 - .56 * doze, 890,1023);
             body.Translate(lean * .65, drop * .36);
