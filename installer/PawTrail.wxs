@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- Keep UpgradeCode and component GUIDs across releases. Give each new
+       product version a new Product Id; keep it stable for this release. -->
+  <Product Id="{960FB2C1-05C8-469F-8D56-EDE405B8A325}"
+           UpgradeCode="{9BAADCA6-1F65-4AC8-8B09-C8A722A1F702}"
+           Name="爪印小屋" Manufacturer="PawTrail" Version="1.0.2"
+           Language="2052" Codepage="936">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser"
+             InstallPrivileges="limited" SummaryCodepage="936"
+             Description="爪印小屋 · 键鼠跟随桌宠" />
+    <MediaTemplate EmbedCab="yes" />
+    <MajorUpgrade Schedule="afterInstallInitialize" MigrateFeatures="yes"
+                  DowngradeErrorMessage="此账户已安装更新版本的爪印小屋。" />
+
+    <Icon Id="PetIcon.ico" SourceFile="$(var.PetIcon)" />
+    <Property Id="ARPPRODUCTICON" Value="PetIcon.ico" />
+    <Property Id="INSTALLLEVEL" Value="1" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+    <Property Id="INSTALLDIR" Secure="yes" />
+    <Property Id="NETFRAMEWORKRELEASE">
+      <RegistrySearch Id="FindFrameworkRelease" Root="HKLM"
+                      Key="SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full"
+                      Name="Release" Type="raw" />
+    </Property>
+    <Condition Message="请先安装 Microsoft .NET Framework 4.8 或更高版本，再运行此安装包。">
+      Installed OR (NETFRAMEWORKRELEASE AND NETFRAMEWORKRELEASE &gt;= "#528040")
+    </Condition>
+
+    <Property Id="PREVIOUSINSTALLDIR" Secure="yes">
+      <RegistrySearch Id="FindPreviousFolder" Root="HKCU" Key="Software\PawTrail\Installer"
+                      Name="InstallFolder" Type="raw" />
+    </Property>
+    <SetProperty Id="INSTALLDIR" Value="[PREVIOUSINSTALLDIR]" Before="CostInitialize" Sequence="both">
+      PREVIOUSINSTALLDIR AND NOT INSTALLDIR
+    </SetProperty>
+    <SetProperty Id="INSTALLDIR" Action="DefaultPerUserInstallDir" Value="[LocalAppDataFolder]Programs\PawTrail"
+                 Before="CostInitialize" Sequence="both">
+      NOT INSTALLDIR AND NOT PREVIOUSINSTALLDIR
+    </SetProperty>
+    <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLDIR]" After="CostFinalize" Sequence="execute" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="INSTALLDIR" Name="PawTrail">
+          <Component Id="PetFiles" Guid="{B61D9204-1336-4E60-BF69-818644327B56}">
+            <File Id="PetExecutable" Source="$(var.PetExe)" Name="PawTrail.exe" />
+            <RegistryValue Root="HKCU" Key="Software\PawTrail\Installer" Name="InstallFolder"
+                           Type="string" Value="[INSTALLDIR]" KeyPath="yes" />
+            <RemoveFolder Id="RemoveEmptyInstallDir" On="uninstall" />
+          </Component>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Component Id="StartMenuEntry" Guid="{9C877273-E2A3-43EA-AC2F-0836660A38B1}">
+          <Shortcut Id="StartMenuLink" Name="爪印小屋" Description="打开桌宠工作室"
+                    Target="[INSTALLDIR]PawTrail.exe" WorkingDirectory="INSTALLDIR" />
+          <RegistryValue Root="HKCU" Key="Software\PawTrail\Installer" Name="StartMenu"
+                         Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+      <Directory Id="DesktopFolder">
+        <Component Id="DesktopEntry" Guid="{92F1E333-B6AB-4ECC-91B2-B2D356186818}">
+          <Shortcut Id="DesktopLink" Name="爪印小屋" Description="打开桌宠工作室"
+                    Target="[INSTALLDIR]PawTrail.exe" WorkingDirectory="INSTALLDIR" />
+          <RegistryValue Root="HKCU" Key="Software\PawTrail\Installer" Name="DesktopShortcut"
+                         Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+      <Directory Id="StartupFolder">
+        <Component Id="StartupEntry" Guid="{00E7C4B2-4993-4ABC-98F6-E8CC4559219C}">
+          <Shortcut Id="StartupLink" Name="爪印小屋" Description="登录时启动桌宠"
+                    Target="[INSTALLDIR]PawTrail.exe" Arguments="--startup" WorkingDirectory="INSTALLDIR" />
+          <RegistryValue Root="HKCU" Key="Software\PawTrail\Installer" Name="AutoStart"
+                         Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </Directory>
+
+    <Feature Id="PetCore" Title="桌宠主程序" Description="安装桌宠，并在开始菜单创建入口。"
+             Level="1" Absent="disallow" AllowAdvertise="no" Display="expand">
+      <ComponentRef Id="PetFiles" />
+      <ComponentRef Id="StartMenuEntry" />
+      <Feature Id="DesktopShortcut" Title="桌面快捷方式" Level="1" AllowAdvertise="no"
+               Description="在当前用户的桌面上创建爪印小屋快捷方式。">
+        <ComponentRef Id="DesktopEntry" />
+      </Feature>
+      <Feature Id="AutoStart" Title="开机自启动" Level="2" AllowAdvertise="no"
+               Description="当前用户登录 Windows 时，自动启动桌宠。">
+        <ComponentRef Id="StartupEntry" />
+      </Feature>
+    </Feature>
+
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="完成后打开爪印小屋" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="DesktopChosen" Value="1" />
+    <CustomAction Id="OpenPawTrail" FileKey="PetExecutable" ExeCommand=""
+                  Execute="immediate" Impersonate="yes" Return="asyncNoWait" />
+    <CustomActionRef Id="WixUIValidatePath" />
+    <UIRef Id="WixUI_FeatureTree" />
+    <UI>
+      <DialogRef Id="InstallDirDlg" />
+      <DialogRef Id="InvalidDirDlg" />
+      <Dialog Id="PetOptionsDlg" Width="370" Height="270" Title="[ProductName] 安装向导">
+        <Control Id="Heading" Type="Text" X="20" Y="15" Width="325" Height="18"
+                 Text="{\WixUI_Font_Title}快捷方式和启动选项" />
+        <Control Id="HeadingLine" Type="Line" X="0" Y="43" Width="370" Height="0" />
+        <Control Id="Desktop" Type="CheckBox" X="24" Y="68" Width="320" Height="20"
+                 Text="创建桌面快捷方式" Property="DesktopChosen" CheckBoxValue="1" />
+        <Control Id="Startup" Type="CheckBox" X="24" Y="105" Width="320" Height="20"
+                 Text="登录 Windows 时自动启动桌宠" Property="StartupChosen" CheckBoxValue="1" />
+        <Control Id="StartupHelp" Type="Text" X="37" Y="127" Width="302" Height="25"
+                 Text="自动启动时，猫咪会直接出现在桌面上。" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
+          <Publish Event="NewDialog" Value="InstallDirDlg">NOT Installed</Publish>
+          <Publish Event="NewDialog" Value="MaintenanceTypeDlg">Installed</Publish>
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <Publish Event="AddLocal" Value="DesktopShortcut">DesktopChosen</Publish>
+          <Publish Event="Remove" Value="DesktopShortcut">NOT DesktopChosen</Publish>
+          <Publish Event="AddLocal" Value="AutoStart">StartupChosen</Publish>
+          <Publish Event="Remove" Value="AutoStart">NOT StartupChosen</Publish>
+          <Publish Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+        </Control>
+      </Dialog>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="10">NOT Installed</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Property="_BrowseProperty" Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Event="SpawnDialog" Value="BrowseDlg" Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="SetTargetPath" Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="DoAction" Value="WixUIValidatePath" Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="SpawnDialog" Value="InvalidDirDlg" Order="3">NOT WIXUI_INSTALLDIR_VALID="1"</Publish>
+      <!-- Costing and feature migration have already run by the time these dialogs open. -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Property="DesktopChosen" Order="4">NOT OptionsInitialized AND &amp;DesktopShortcut=2</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Property="StartupChosen" Value="1" Order="5">NOT OptionsInitialized AND &amp;AutoStart=3</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Property="OptionsInitialized" Value="1" Order="6">WIXUI_INSTALLDIR_VALID="1"</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="PetOptionsDlg" Order="7">WIXUI_INSTALLDIR_VALID="1"</Publish>
+      <Publish Dialog="MaintenanceTypeDlg" Control="ChangeButton" Property="DesktopChosen" Order="7">NOT OptionsInitialized AND NOT (!DesktopShortcut=3)</Publish>
+      <Publish Dialog="MaintenanceTypeDlg" Control="ChangeButton" Property="StartupChosen" Value="1" Order="8">NOT OptionsInitialized AND !AutoStart=3</Publish>
+      <Publish Dialog="MaintenanceTypeDlg" Control="ChangeButton" Property="OptionsInitialized" Value="1" Order="9">1</Publish>
+      <Publish Dialog="MaintenanceTypeDlg" Control="ChangeButton" Event="NewDialog" Value="PetOptionsDlg" Order="10">1</Publish>
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="PetOptionsDlg" Order="10">NOT Installed OR WixUI_InstallMode="Change"</Publish>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenPawTrail" Order="1">
+        WIXUI_EXITDIALOGOPTIONALCHECKBOX="1" AND NOT Installed
+      </Publish>
+    </UI>
+  </Product>
+</Wix>
