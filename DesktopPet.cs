@@ -32,7 +32,7 @@ namespace PawTrail
 
         public int LeftPawKey = -1, RightPawKey = -1, MouseButton;
         public double LeftPawPress, RightPawPress, Click, MouseX, MouseY, Scroll;
-        public double Petting, Doze, Reach, March;
+        public double Petting, Doze, Reach;
         public double LastActivity { get; private set; }
         public ulong LowKeys, HighKeys;
 
@@ -46,15 +46,12 @@ namespace PawTrail
         public void AdvanceInteraction(double now, double dt, bool nearKeyboard, bool petting, bool interacting)
         {
             if (petting || interacting || leftHeld || rightHeld || buttonHeld) ObserveInput(now);
-            bool resting = ReadyToSleep(now);
-            bool walking = now - LastActivity >= 300;
-            bool sleeping = resting && !walking;
+            bool sleeping = ReadyToSleep(now);
             // Residual sleep posture would pull the paw away from its first key.
-            if (!resting && (March > 0 || LeftPawPress > 0 || RightPawPress > 0)) Doze = 0;
+            if (!sleeping && (LeftPawPress > 0 || RightPawPress > 0)) Doze = 0;
             else Doze = Approach(Doze, sleeping, sleeping ? 1.4 : 14, dt);
-            March = walking ? Approach(March, true, 2.8, dt) : 0;
             Petting = Approach(Petting, petting, 12, dt);
-            Reach = Approach(Reach, nearKeyboard && !resting && !petting && !interacting, 8, dt);
+            Reach = Approach(Reach, nearKeyboard && !sleeping && !petting && !interacting, 8, dt);
         }
 
         private static double Approach(double value, bool active, double rate, double dt)
@@ -349,7 +346,6 @@ namespace PawTrail
             target.MouseButton = pose.MouseButton;
             target.Scroll = pose.Scroll;
             target.Reach = pose.Reach;
-            target.March = pose.March;
             target.Petting = pose.Petting;
             target.Doze = pose.Doze;
             target.SetKeyboardPose(pose.LeftPawKey, pose.LeftPawPress, pose.RightPawKey, pose.RightPawPress, pose.LowKeys, pose.HighKeys);
@@ -523,7 +519,7 @@ namespace PawTrail
             }
             // A button may already be down at startup, or pressed while sync is paused.
             // Check only at sleep onset. The aggregate result is discarded immediately.
-            if (pose.Doze == 0 && pose.March == 0 && pose.ReadyToSleep(now) && AnyButtonDown()) pose.ObserveInput(now);
+            if (pose.Doze == 0 && pose.ReadyToSleep(now) && AnyButtonDown()) pose.ObserveInput(now);
             ScreenPoint cursor;
             bool near = placed && art.IsLoaded && GetCursorPos(out cursor) &&
                         art.NearKeyboard(art.PointFromScreen(new Point(cursor.X, cursor.Y)));

@@ -22,7 +22,7 @@ try {
     $objectFile = Join-Path $stage 'PawTrail.wixobj'
     & $compiler -nologo -arch x86 "-dPetExe=$payload" "-dPetIcon=$icon" -out $objectFile $definition
     if ($LASTEXITCODE -ne 0) { throw "Installer compilation failed ($LASTEXITCODE)." }
-    $packageName = 'PawTrail-Setup-1.0.6.msi'
+    $packageName = 'PawTrail-Setup-1.0.7.msi'
     $package = Join-Path $stage $packageName
     & $linker -nologo -ext $ui '-cultures:zh-CN' -spdb -out $package $objectFile
     if ($LASTEXITCODE -ne 0) { throw "Installer linking failed ($LASTEXITCODE)." }

@@ -15,9 +15,9 @@ namespace PawTrail
     {
         static readonly string[] Names = { "暖阳三花", "海盐水手", "草莓围巾" };
         static readonly string[] Washes = { "#F6E8D1", "#DDEBEB", "#F6E0DC" };
-        static readonly string[] InteractionNames = { "打字联动", "手搭键盘", "摸头互动", "犯困睡觉", "背键盘踏步", "小猫来访", "乌鸦落脚" };
-        static readonly string[] InteractionHints = { "左右前爪分工敲键", "指针靠近，双爪搭键盘", "按住猫头，闭眼享受", "闲置三分钟后趴睡", "闲置五分钟后原地走", "依次敲下 c a t", "依次敲下 b i r d" };
-        static readonly string[] InteractionIcons = { "keyboard", "reach", "petting", "sleep", "steps", "kitten", "crow" };
+        static readonly string[] InteractionNames = { "打字联动", "手搭键盘", "摸头互动", "犯困睡觉", "小猫来访", "乌鸦落脚" };
+        static readonly string[] InteractionHints = { "左右前爪分工敲键", "指针靠近，双爪搭键盘", "按住猫头，闭眼享受", "闲置三分钟后趴睡", "依次敲下 c a t", "依次敲下 b i r d" };
+        static readonly string[] InteractionIcons = { "keyboard", "reach", "petting", "sleep", "kitten", "crow" };
         static readonly int[] SampleKeys = {
             KeyboardLayout.Resolve(0x32, 0, 0x4D), KeyboardLayout.Resolve(0x12, 0, 0x45),
             KeyboardLayout.Resolve(0x18, 0, 0x4F), KeyboardLayout.Resolve(0x11, 0, 0x57)
@@ -287,8 +287,8 @@ namespace PawTrail
             hint.HorizontalAlignment = HorizontalAlignment.Right;
             heading.Children.Add(hint);
             guide.Children.Add(heading);
-            UniformGrid cards = new UniformGrid { Columns = 4, Margin = new Thickness(-3, 6, -3, 0) };
-            cards.SizeChanged += delegate { cards.Columns = cards.ActualWidth >= 595 ? 4 : 2; };
+            UniformGrid cards = new UniformGrid { Columns = 3, Margin = new Thickness(-3, 6, -3, 0) };
+            cards.SizeChanged += delegate { cards.Columns = cards.ActualWidth >= 595 ? 3 : 2; };
             for (int i = 0; i < InteractionNames.Length; i++)
             {
                 int index = i;
@@ -377,7 +377,7 @@ namespace PawTrail
                 demoClock.Stop();
                 SetPreviewCaption();
                 preview.ClearKeyFeedback();
-                preview.Petting = preview.Reach = preview.Doze = preview.March = 0;
+                preview.Petting = preview.Reach = preview.Doze = 0;
                 preview.SetGuests(0, 0);
                 preview.SetKeyboardPose(-1, 0, -1, 0, 0, 0);
             }
@@ -398,8 +398,7 @@ namespace PawTrail
             preview.LookY = .25 * preview.Reach;
             preview.Petting = activeDemo == 2 ? amount : 0;
             preview.Doze = activeDemo == 3 ? amount : 0;
-            preview.March = activeDemo == 4 ? amount : 0;
-            preview.SetGuests(activeDemo == 5 ? amount : 0, activeDemo == 6 ? amount : 0);
+            preview.SetGuests(activeDemo == 4 ? amount : 0, activeDemo == 5 ? amount : 0);
             if (activeDemo != 0) { preview.SetKeyboardPose(-1, 0, -1, 0, 0, 0); return; }
             double beat = t / .33;
             int step = (int)beat % SampleKeys.Length;
@@ -485,7 +484,6 @@ namespace PawTrail
                     case "reach": Path(dc,"M2.8,15 H21 V20 H2.8Z M5,17.5 H7 M9,17.5 H11 M13,17.5 H16 M8,4 C10,3 12,4 13,6 L15.2,11 C15.8,13 13,14 11.8,12.5 L9.5,9.4 M12.6,5.4 L15,7.5",null,color,1.7); break;
                     case "petting": Path(dc,"M3.5,18 V12 L7.5,8.8 9.5,12 H14 L16.4,8.8 20,12 V18 Q13,23 3.5,18Z M7.5,15 Q9,16.6 10.5,15 M13,15 Q14.6,16.6 16.1,15 M11,5.7 Q12.5,3.4 14,5.7 Q15.5,3.4 17,5.7 Q17.2,7.2 14,9 Q10.9,7.2 11,5.7Z",null,color,1.4); break;
                     case "sleep": Path(dc,"M13,3.4 C6.4,3 2.8,8.3 3.6,13.5 C4.5,19.1 11.4,22.8 17.6,18.6 C11.4,18.5 7.8,14.5 8.5,9.6 C8.7,6.8 10.3,4.9 13,3.4Z M15.5,7.8 H20 L15.5,12.4 H20",null,color,1.6); break;
-                    case "steps": Path(dc,"M7,4 C4,5 4,10 6,12 Q9,14 10,10 C11,7 10,3 7,4Z M6,15 Q8,14 10,15 L9,18 Q7,19 6,17Z M16,8 C13,8 13,13 14,16 Q16,19 18,16 C20,12 20,9 16,8Z M14,19 Q16,18 18,20 Q17,23 15,22Z",null,color,1.5); break;
                     case "kitten": Path(dc,"M3,12 L4,4 L9,8 Q12,7 15,8 L20,4 L21,12 Q23,20 12,21 Q2,20 3,12Z M7,13 H8 M16,13 H17 M11,16 Q12,18 13,16",null,color,1.5); break;
                     case "crow": Path(dc,"M2,18 L7,12 Q9,8 12,8 Q13,3 17,4 Q20,4 20,7 L23,9 L19,10 Q19,16 14,17 L13,21 M10,17 L9,20 M5,15 Q9,16 13,12",null,color,1.7); break;
                     case "size": Path(dc,"M3.5,9 L3.5,3.5 9,3.5 M15,3.5 L20.5,3.5 20.5,9 M20.5,15 L20.5,20.5 15,20.5 M9,20.5 L3.5,20.5 3.5,15 M8,16 L15.7,8.2 M11.2,8.2 L15.7,12.7",null,color,1.5); break;

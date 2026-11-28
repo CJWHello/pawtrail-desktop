@@ -94,13 +94,13 @@
         <h1 id="name">爪印小屋</h1>
         <p class="intro">长毛三花猫坐在朝向自己的键盘后，空格键就在爪边。你按哪个键，它就敲哪个键。你移动鼠标，它也用尾尖轻轻推过去。</p>
         <div class="actions">
-          <a class="primary" href="./PawTrail-Setup-1.0.6.msi" download>下载 Windows 安装包 <span aria-hidden="true">↓</span></a>
+          <a class="primary" href="./PawTrail-Setup-1.0.7.msi" download>下载 Windows 安装包 <span aria-hidden="true">↓</span></a>
           <a class="textlink" href="#install">安装指南</a>
         </div>
         <p class="compat">Windows 10 / 11 · 需要 .NET Framework 4.8 或更高版本</p>
       </div>
       <figure class="preview" id="preview" aria-labelledby="preview-title">
-        <div class="preview-head"><h2 id="preview-title">动作预览</h2><span class="version">v1.0.6</span></div>
+        <div class="preview-head"><h2 id="preview-title">动作预览</h2><span class="version">v1.0.7</span></div>
         <div class="stage"><img id="pet-frame" width="820" height="677" src="docs/assets/calico-rest.png" alt="长毛三花猫坐在键盘后面，两只白爪搭在键盘上，尾巴搭着鼠标。"></div>
         <figcaption class="caption"><span class="caption-meta" id="pose-caption" aria-live="polite">暖阳三花 · 搭爪待机</span></figcaption>
         <div class="switches" id="poses" role="group" aria-label="切换预览动作" hidden>
@@ -109,7 +109,6 @@
           <button type="button" data-pose="mouse" aria-pressed="false">控鼠</button>
           <button type="button" data-pose="pet" aria-pressed="false">摸头</button>
           <button type="button" data-pose="sleep" aria-pressed="false">打盹</button>
-          <button type="button" data-pose="march" aria-pressed="false">踏步</button>
           <button type="button" data-pose="kitten" aria-pressed="false">小猫</button>
           <button type="button" data-pose="crow" aria-pressed="false">乌鸦</button>
         </div>
@@ -128,13 +127,13 @@
       <dl>
         <div><dt>换衣服，换鼠标方向</dt><dd>双击猫咪或托盘里的像素黑猫图标打开工作室。可以切换暖阳三花、海盐水手、草莓围巾三款皮肤，也能调整大小，把鼠标放到键盘左侧或右侧。</dd></div>
         <div><dt>同时敲键，尾巴拨轮</dt><dd>你一打字，猫咪就会看向键盘。按住组合键，两只前爪各自落键，身旁弹出印着键名的立体键帽。尾巴还能跟随鼠标的移动、左中右键点击和滚轮动作。</dd></div>
-        <div><dt>摸摸头，让它歇会儿</dt><dd>按住猫头，它会眯起眼睛。闲置三分钟后它会打盹，满五分钟就背起键盘原地踏步。动一下鼠标或敲一个键，它就回桌。</dd></div>
+        <div><dt>摸摸头，让它歇会儿</dt><dd>按住猫头，它会眯起眼睛。闲置三分钟后它会趴下打盹，动一下鼠标或敲一个键就会醒来。</dd></div>
         <div><dt>敲个单词，叫来伙伴</dt><dd>开启键鼠同步，依次敲出 <code>cat</code>，小猫就会出现。敲出 <code>bird</code>，乌鸦会落在键盘角上。大小写都可以。</dd></div>
         <div><dt>输入与偏好</dt><dd>键鼠动作在本机处理，只用于即时动画。工作室可以暂停同步；皮肤、大小、位置等偏好保存在当前用户的本地设置文件里。</dd></div>
       </dl>
     </section>
   </main>
-  <footer><div class="wrap foot"><span class="footer-mark">PawTrail · 爪印小屋 1.0.6</span><a class="textlink" href="#top">回到顶部 ↑</a></div></footer>
+  <footer><div class="wrap foot"><span class="footer-mark">PawTrail · 爪印小屋 1.0.7</span><a class="textlink" href="#top">回到顶部 ↑</a></div></footer>
   <script>
     const poses = {
       rest: ['暖阳三花 · 搭爪待机', '三花猫坐在键盘后，空格键靠近它的前爪，键帽字符朝向猫咪。'],
@@ -142,7 +141,6 @@
       mouse: ['海盐水手 · 尾巴操作左侧鼠标', '戴水手帽的三花猫用尾尖操作键盘左侧的鼠标。'],
       pet: ['草莓围巾 · 摸摸猫头', '围着粉色围巾的三花猫舒服地眯起眼睛。'],
       sleep: ['暖阳三花 · 闲置三分钟后打盹', '三花猫趴低身子，闭着眼睛睡在键盘后面。'],
-      march: ['背起键盘 · 原地踏步', '三花猫背着键盘，交替迈动四爪。'],
       kitten: ['输入 cat · 小猫来访', '三花猫身边多了一只小猫。'],
       crow: ['输入 bird · 乌鸦落脚', '一只黑色乌鸦停在键盘的角上。']
     };

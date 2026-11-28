@@ -21,7 +21,7 @@ $compilerArgs += '/win32icon:' + (Join-Path $PSScriptRoot 'PawTrail.ico')
 $compilerArgs += '/resource:' + (Join-Path $PSScriptRoot 'PawTrail.ico') + ',PawTrail.ico'
 $compilerArgs += '/win32manifest:' + (Join-Path $PSScriptRoot 'app.manifest')
 $compilerArgs += '/out:' + (Join-Path $outputDir 'PawTrail.exe')
-$compilerArgs += 'App.cs', 'DesktopPet.cs', 'KeyboardLayout.cs', 'PetArt.cs', 'CalicoFace.cs', 'CalicoCoat.cs', 'CalicoDesk.cs', 'CalicoWalk.cs', 'CalicoGuests.cs', 'Studio.cs' | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$compilerArgs += 'App.cs', 'DesktopPet.cs', 'KeyboardLayout.cs', 'PetArt.cs', 'CalicoFace.cs', 'CalicoCoat.cs', 'CalicoDesk.cs', 'CalicoGuests.cs', 'Studio.cs' | ForEach-Object { Join-Path $PSScriptRoot $_ }
 & $compiler @compilerArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Output (Join-Path $outputDir 'PawTrail.exe')
