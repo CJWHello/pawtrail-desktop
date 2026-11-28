@@ -23,12 +23,15 @@ namespace PawTrail
         private double targetX, targetY, lastMove = -10, scrollAt = -10, scrollDirection;
         private enum WordPrefix { None, C, Ca, B, Bi, Bir }
         private WordPrefix wordPrefix;
-        private double prefixExpires, kittenUntil, crowUntil;
+        private double prefixExpires;
+        private readonly GuestVisit kitten = new GuestVisit(), crow = new GuestVisit();
         private static readonly KeyCap[] shortcutKeys = Array.FindAll(KeyboardLayout.Keys,
             k => k.Label == "Ctrl" || k.Label == "Alt" || k.Label == "Win");
 
-        public double KittenVisit { get; private set; }
-        public double CrowVisit { get; private set; }
+        public double KittenVisit { get { return kitten.Visibility; } }
+        public double CrowVisit { get { return crow.Visibility; } }
+        public double KittenAge { get { return kitten.Age; } }
+        public double CrowAge { get { return crow.Age; } }
 
         public int LeftPawKey = -1, RightPawKey = -1, MouseButton;
         public double LeftPawPress, RightPawPress, Click, MouseX, MouseY, Scroll;
@@ -93,19 +96,41 @@ namespace PawTrail
                 case 'I': wordPrefix = wordPrefix == WordPrefix.B ? WordPrefix.Bi : WordPrefix.None; break;
                 case 'R': wordPrefix = wordPrefix == WordPrefix.Bi ? WordPrefix.Bir : WordPrefix.None; break;
                 default:
-                    if (virtualKey == 'T' && wordPrefix == WordPrefix.Ca) kittenUntil = now + 5;
-                    if (virtualKey == 'D' && wordPrefix == WordPrefix.Bir) crowUntil = now + 5;
+                    if (virtualKey == 'T' && wordPrefix == WordPrefix.Ca) kitten.Invite(now);
+                    if (virtualKey == 'D' && wordPrefix == WordPrefix.Bir) crow.Invite(now);
                     wordPrefix = WordPrefix.None;
                     break;
             }
             prefixExpires = now + 8;
         }
 
-        private static double GuestVisibility(double current, double until, double now, double dt)
+        private sealed class GuestVisit
         {
-            if (now >= until) return 0;
-            double fade = Math.Min(1, (until - now) / .45);
-            return Math.Min(Approach(current, true, 16, dt), fade * fade * (3 - 2 * fade));
+            private double arrival, departure;
+            public double Age { get; private set; }
+            public double Visibility { get; private set; }
+
+            public void Invite(double now)
+            {
+                if (now >= departure)
+                {
+                    arrival = now;
+                    Visibility = 0;
+                }
+                departure = now + 30;
+            }
+
+            public void Advance(double now, double dt)
+            {
+                if (now >= departure)
+                {
+                    Age = Visibility = 0;
+                    return;
+                }
+                Age = now - arrival;
+                double fade = Math.Min(1, (departure - now) / .55);
+                Visibility = Math.Min(Approach(Visibility, true, 16, dt), fade * fade * (3 - 2 * fade));
+            }
         }
 
         // Standard touch-typing boundaries follow the stagger of each row.
@@ -205,8 +230,8 @@ namespace PawTrail
         public void Advance(double now, double dt)
         {
             if (now >= prefixExpires) wordPrefix = WordPrefix.None;
-            KittenVisit = GuestVisibility(KittenVisit, kittenUntil, now, dt);
-            CrowVisit = GuestVisibility(CrowVisit, crowUntil, now, dt);
+            kitten.Advance(now, dt);
+            crow.Advance(now, dt);
             LowKeys = HighKeys = 0;
             for (int i = 0; i < down.Length && i < 128; ++i)
             {
@@ -349,7 +374,7 @@ namespace PawTrail
             target.Petting = pose.Petting;
             target.Doze = pose.Doze;
             target.SetKeyboardPose(pose.LeftPawKey, pose.LeftPawPress, pose.RightPawKey, pose.RightPawPress, pose.LowKeys, pose.HighKeys);
-            target.SetGuests(pose.KittenVisit, pose.CrowVisit);
+            target.SetGuests(pose.KittenVisit, pose.CrowVisit, pose.KittenAge, pose.CrowAge);
         }
 
         private static void AddCommand(ContextMenu target, string label, Action action)

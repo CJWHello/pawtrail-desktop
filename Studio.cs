@@ -15,7 +15,7 @@ namespace PawTrail
     {
         static readonly string[] Names = { "暖阳三花", "海盐水手", "草莓围巾" };
         static readonly string[] Washes = { "#F6E8D1", "#DDEBEB", "#F6E0DC" };
-        static readonly string[] InteractionNames = { "打字联动", "手搭键盘", "摸头互动", "犯困睡觉", "小猫来访", "乌鸦落脚" };
+        static readonly string[] InteractionNames = { "打字联动", "手搭键盘", "摸头互动", "犯困睡觉", "小猫玩球", "乌鸦展翅" };
         static readonly string[] InteractionHints = { "左右前爪分工敲键", "指针靠近，双爪搭键盘", "按住猫头，闭眼享受", "闲置三分钟后趴睡", "依次敲下 c a t", "依次敲下 b i r d" };
         static readonly string[] InteractionIcons = { "keyboard", "reach", "petting", "sleep", "kitten", "crow" };
         static readonly int[] SampleKeys = {
@@ -371,7 +371,7 @@ namespace PawTrail
             if (activeDemo >= 0)
             {
                 double t = demoClock.Elapsed.TotalSeconds;
-                if (t < 2.6) { DrawDemo(t); return; }
+                if (t < DemoDuration) { DrawDemo(t); return; }
                 PaintDemoCard(activeDemo, false);
                 activeDemo = -1;
                 demoClock.Stop();
@@ -385,10 +385,12 @@ namespace PawTrail
             if (copy != null) copy(preview);
         }
 
+        double DemoDuration { get { return activeDemo >= 4 ? 8.0 : 2.6; } }
+
         void DrawDemo(double t)
         {
             // Ease into a pose and release it before resuming the live input feed.
-            double amount = Math.Max(0, Math.Min(1, Math.Min(t / .26, (2.6 - t) / .28)));
+            double amount = Math.Max(0, Math.Min(1, Math.Min(t / .26, (DemoDuration - t) / .28)));
             amount = amount * amount * (3 - 2 * amount);
             preview.Phase = demoStartPhase + 2 * t;
             preview.Click = preview.Scroll = 0;
@@ -398,7 +400,8 @@ namespace PawTrail
             preview.LookY = .25 * preview.Reach;
             preview.Petting = activeDemo == 2 ? amount : 0;
             preview.Doze = activeDemo == 3 ? amount : 0;
-            preview.SetGuests(activeDemo == 4 ? amount : 0, activeDemo == 5 ? amount : 0);
+            preview.SetGuests(activeDemo == 4 ? amount : 0, activeDemo == 5 ? amount : 0,
+                activeDemo == 4 ? t : 0, activeDemo == 5 ? t : 0);
             if (activeDemo != 0) { preview.SetKeyboardPose(-1, 0, -1, 0, 0, 0); return; }
             double beat = t / .33;
             int step = (int)beat % SampleKeys.Length;
