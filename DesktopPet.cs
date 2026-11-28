@@ -314,6 +314,7 @@ namespace PawTrail
             pose = new PetInputPose();
             pose.ObserveInput(clock.Elapsed.TotalSeconds);
             haveAbsolute = false;
+            art.ClearKeyFeedback();
             CopyPoseTo(art);
         }
 

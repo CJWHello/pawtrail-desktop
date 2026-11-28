@@ -316,6 +316,7 @@ namespace PawTrail
         {
             if (activeDemo >= 0) PaintDemoCard(activeDemo, false);
             activeDemo = index;
+            preview.ClearKeyFeedback();
             demoStartPhase = preview.Phase;
             demoClock.Restart();
             PaintDemoCard(index, true);
@@ -347,6 +348,7 @@ namespace PawTrail
         {
             int selected = Math.Max(0, Math.Min(2, settings.Skin));
             SetPreviewCaption(); preview.Skin = selected;
+            if (!settings.InputEnabled && activeDemo < 0) preview.ClearKeyFeedback();
             preview.MouseOnLeft = settings.MouseOnLeft;
             mouseChoices[settings.MouseOnLeft ? 0 : 1].IsChecked = true;
             for (int i = 0; i < 3; i++)
@@ -374,6 +376,7 @@ namespace PawTrail
                 activeDemo = -1;
                 demoClock.Stop();
                 SetPreviewCaption();
+                preview.ClearKeyFeedback();
                 preview.Petting = preview.Reach = preview.Doze = 0;
                 preview.SetKeyboardPose(-1, 0, -1, 0, 0, 0);
             }

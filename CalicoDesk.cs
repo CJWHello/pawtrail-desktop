@@ -18,6 +18,8 @@ namespace PawTrail
         private static readonly Dictionary<string, FormattedText> DeskLegends =
             new Dictionary<string, FormattedText>();
         private static DrawingGroup deskKeyboard;
+        private static readonly Dictionary<string, DrawingGroup> feedbackCaps = new Dictionary<string, DrawingGroup>();
+        private readonly FloatingKeycap leftFeedback = new FloatingKeycap(), rightFeedback = new FloatingKeycap();
         private const string KeyboardCase =
             "M67,1319 L131,1049 Q137,1014 174,1014 L1268,1021 Q1299,1021 1306,1052 " +
             "L1341,1306 Q1345,1338 1341,1350 Q1336,1376 1308,1378 L105,1371 Q71,1371 68,1349 Q66,1344 67,1319Z";
@@ -75,6 +77,10 @@ namespace PawTrail
         private static readonly Brush MouseSole = DeskGradient("#E6E4DA", "#A3A8A3", .18);
         private static readonly Brush MousePalm = DeskGradient("#F4F1EB", "#E6E3D9", .31);
         private static readonly Brush WheelSurface = DeskGradient("#CAD5C7", "#7F948A");
+        private static readonly Brush HoneyWall = DeskGradient("#F6CF94", "#C28F60");
+        private static readonly Brush RoseWall = DeskGradient("#F3C3C2", "#C38D94");
+        private static readonly Brush HoneyFace = DeskGradient("#FFFCED", "#FFE7BD", .15);
+        private static readonly Brush RoseFace = DeskGradient("#FFF6EF", "#FBDCD5", .15);
 
         private static void DeskPath(DrawingContext dc, string data, Brush fill,
             string stroke = null, double width = 1.5)
@@ -168,19 +174,58 @@ namespace PawTrail
 
         private void DrawKeyFeedback(DrawingContext dc)
         {
-            KeyCap left = screenLeftPress > .13 ? KeyboardLayout.Get(screenLeftKey) : null;
-            KeyCap right = screenRightPress > .13 ? KeyboardLayout.Get(screenRightKey) : null;
-            if (left == null && right == null) return;
+            KeyCap left = screenLeftPress > .08 ? KeyboardLayout.Get(screenLeftKey) : null;
+            KeyCap right = screenRightPress > .08 ? KeyboardLayout.Get(screenRightKey) : null;
+            // A chord can transfer a held key between paws. Retire its former cap
+            // immediately, so there is only one floating copy of that physical key.
+            if (left != null && right == null && rightFeedback.Key == left) rightFeedback.Key = null;
+            if (right != null && left == null && leftFeedback.Key == right) leftFeedback.Key = null;
+            double now = phase * .5;
+            leftFeedback.Follow(left, screenLeftPress, now);
+            rightFeedback.Follow(right, screenRightPress, now);
+            if (leftFeedback.Key == null && rightFeedback.Key == null) return;
 
             // Use window coordinates so the illustration's scale cannot shrink
             // the labels to the size of the tiny legends printed on the keycaps.
-            double scale = Math.Min(1.05, Math.Min(ActualWidth / 280, ActualHeight / 172));
+            double scale = Math.Min(1.25, Math.Min(ActualWidth / 280, ActualHeight / 172));
             if (scale <= 0) return;
             dc.PushTransform(new ScaleTransform(scale, scale));
             double availableWidth = ActualWidth / scale;
-            if (left != null) DrawDeskBadge(dc, left, availableWidth, false);
-            if (right != null) DrawDeskBadge(dc, right, availableWidth, true);
+            if (leftFeedback.Key != null) DrawFloatingKeycap(dc, leftFeedback, availableWidth, false, now);
+            if (rightFeedback.Key != null) DrawFloatingKeycap(dc, rightFeedback, availableWidth, true, now);
             dc.Pop();
+        }
+
+        internal void ClearKeyFeedback()
+        {
+            leftFeedback.Key = rightFeedback.Key = null;
+            InvalidateVisual();
+        }
+
+        private sealed class FloatingKeycap
+        {
+            public KeyCap Key;
+            public double FirstSeen, LastSeen;
+            private bool engaged, lifting;
+            private double previousPress;
+
+            public void Follow(KeyCap next, double press, double now)
+            {
+                if (next != null)
+                {
+                    if (next != Key || !engaged || now < LastSeen || (lifting && press > previousPress))
+                    {
+                        FirstSeen = now;
+                        lifting = false;
+                    }
+                    else if (press < previousPress) lifting = true;
+                    Key = next;
+                    LastSeen = now;
+                }
+                else if (now - LastSeen >= .32 || now < LastSeen) Key = null;
+                previousPress = press;
+                engaged = next != null;
+            }
         }
 
         private static string BadgeText(KeyCap key)
@@ -198,22 +243,62 @@ namespace PawTrail
             }
         }
 
-        private static void DrawDeskBadge(DrawingContext dc, KeyCap key, double availableWidth, bool rightPaw)
+        private static void DrawFloatingKeycap(DrawingContext dc, FloatingKeycap cap, double availableWidth,
+            bool onRight, double now)
         {
-            const double top = 4, margin = 5, height = 31;
+            KeyCap key = cap.Key;
             var label = DeskLegend(BadgeText(key), true);
             // Keep long key names away from the ears on small pets. Both of
             // these alternatives are common legends on physical keyboards.
-            if (label.Width + 16 > availableWidth * .30)
+            if (label.Width + 22 > availableWidth * .30)
             {
                 if (key.Label == "Backspace") label = DeskLegend("Bksp", true);
                 else if (key.Label == "Enter" && key.X >= 18.5) label = DeskLegend("Num ↵", true);
             }
-            double width = Math.Max(35, Math.Ceiling(label.Width) + 16);
-            double x = rightPaw ? availableWidth - margin - width : margin;
-            Round(dc, x, top + 2, width, height, 7, "#63403229");
-            Round(dc, x, top, width, height, 7, rightPaw ? "#FAD2DF" : "#FFDFAB", "#4A3831", 1.35);
-            dc.DrawText(label, new Point(x + (width - label.Width) / 2, top + (height - label.Height) / 2));
+            double width = Math.Max(key.Label == "Space" ? 76 : 43, Math.Ceiling(label.Width) + 22);
+            string cacheKey = (onRight ? "R:" : "L:") + label.Text;
+            DrawingGroup drawing;
+            if (!feedbackCaps.TryGetValue(cacheKey, out drawing))
+            {
+                drawing = Record(delegate(DrawingContext pen) { DrawKeycapShell(pen, label, width, onRight); });
+                feedbackCaps.Add(cacheKey, drawing);
+            }
+
+            double rise = 1 - Clamp((now - cap.FirstSeen) / .09, 0, 1);
+            double fade = Clamp((now - cap.LastSeen - .10) / .22, 0, 1);
+            double x = onRight ? availableWidth - 6 - width : 6;
+            dc.PushTransform(new TranslateTransform(x, 7 + 6 * rise * rise - 5 * fade));
+            dc.PushOpacity(1 - fade * fade);
+            dc.DrawDrawing(drawing);
+            dc.Pop();
+            dc.Pop();
+        }
+
+        private static void DrawKeycapShell(DrawingContext dc, FormattedText label, double w, bool rose)
+        {
+            const double faceHeight = 31, sideBottom = 40;
+            Round(dc, 1, 8, w, 35, 6, "#47403229");
+            var shell = new StreamGeometry();
+            using (StreamGeometryContext g = shell.Open())
+            {
+                g.BeginFigure(new Point(4, 6), true, true);
+                g.QuadraticBezierTo(new Point(5, 1), new Point(10, 1), true, true);
+                g.LineTo(new Point(w - 10, 1), true, true);
+                g.QuadraticBezierTo(new Point(w - 5, 1), new Point(w - 4, 6), true, true);
+                g.LineTo(new Point(w, sideBottom - 6), true, true);
+                g.QuadraticBezierTo(new Point(w + .4, sideBottom), new Point(w - 6, sideBottom), true, true);
+                g.LineTo(new Point(6, sideBottom), true, true);
+                g.QuadraticBezierTo(new Point(-.4, sideBottom), new Point(0, sideBottom - 6), true, true);
+            }
+            shell.Freeze();
+            dc.DrawGeometry(rose ? RoseWall : HoneyWall, Outline("#504136", 1.5), shell);
+            Pen seam = Outline(rose ? "#CA9B9A" : "#CEA875", 1.05);
+            dc.DrawLine(seam, new Point(6.5, faceHeight - 2), new Point(2.3, sideBottom - 3));
+            dc.DrawLine(seam, new Point(w - 6.5, faceHeight - 2), new Point(w - 2.3, sideBottom - 3));
+            dc.DrawRoundedRectangle(rose ? RoseFace : HoneyFace, Outline(rose ? "#C49C98" : "#C5A77B", 1.1),
+                new Rect(4.2, 1.5, w - 8.4, faceHeight), 5.6, 5.6);
+            dc.DrawLine(Outline("#DFFFFFF9", 1.3), new Point(10, 3.5), new Point(w - 10, 3.5));
+            dc.DrawText(label, new Point((w - label.Width) / 2, 1.4 + (faceHeight - label.Height) / 2));
         }
 
         private void DrawMouse(DrawingContext dc, double x, double y)

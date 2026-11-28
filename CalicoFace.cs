@@ -74,7 +74,7 @@ namespace PawTrail
         static readonly Brush portraitGold = PortraitWash("#AA7B3F", "#F3C969", "#FFE8A5", .28,new Point(.35,0),new Point(.61,1));
         static readonly Brush portraitNose = PortraitWash("#F8BCB7", "#ECA3A3", "#C98288", .65,new Point(.4,0),new Point(.6,1));
 
-        void DrawPortrait(DrawingContext dc)
+        void DrawPortrait(DrawingContext dc, Point pupilOffset)
         {
             dc.PushTransform(portraitPlacement);
             Geometry head = Shape(PortraitOutline);
@@ -110,8 +110,8 @@ namespace PawTrail
             double cycle = ((phase % 15.0) + 15.0) % 15.0;
             double blink = Clamp(1 - Math.Abs(cycle - 8.2) / .41, 0, 1);
             double shut = Math.Max(blink, Math.Max(petting, doze));
-            DrawPortraitEye(dc,false,shut);
-            DrawPortraitEye(dc,true,shut);
+            DrawPortraitEye(dc,false,shut,pupilOffset);
+            DrawPortraitEye(dc,true,shut,pupilOffset);
 
             // Nose bridge, blush and tiny split upper lip.
             dc.PushTransform(new TranslateTransform(2.6,-1.6));
@@ -144,7 +144,7 @@ namespace PawTrail
             P(dc,"M930,162 Q916,193 911,228 M958,159 Q935,190 917,231 M946,201 Q928,213 915,237",null,"#B9F6EAD9",1.3);
         }
 
-        void DrawPortraitEye(DrawingContext dc,bool right,double shut)
+        void DrawPortraitEye(DrawingContext dc,bool right,double shut,Point pupilOffset)
         {
             string socket = right ? RightEyeSocket : LeftEyeSocket;
             if (shut > .93)
@@ -167,7 +167,7 @@ namespace PawTrail
                 P(dc,"M698,320 C715,296 746,289 768,299 Q782,303 794,318 Q777,308 756,307 Q722,309 705,339 Z","#78997856");
                 P(dc,"M702,330 Q702,346 715,359 Q724,369 732,372 Q719,371 711,363 L699,348 Z","#FBE6B1");
             }
-            dc.PushTransform(new TranslateTransform(lookX * 7,lookY * 4));
+            dc.PushTransform(new TranslateTransform(pupilOffset.X,pupilOffset.Y));
             double cx = right ? 953 : 763, cy = right ? 312 : 333;
             dc.PushTransform(new RotateTransform(right ? -12 : -6,cx,cy));
             E(dc,cx,cy,right ? 22 : 21.4,right ? 37.8 : 35.6,"#27201B");

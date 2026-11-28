@@ -181,6 +181,31 @@ namespace PawTrail
             return p;
         }
 
+        Point PupilOffset(Matrix head)
+        {
+            Point mouseGaze = new Point(lookX * 7, lookY * 4);
+            KeyCap left = KeyboardLayout.Get(screenLeftKey), right = KeyboardLayout.Get(screenRightKey);
+            double leftWeight = left == null ? 0 : screenLeftPress;
+            double rightWeight = right == null ? 0 : screenRightPress;
+            double weight = Math.Max(leftWeight, rightWeight);
+            if (weight == 0) return mouseGaze;
+
+            Point target = leftWeight > 0 ? ContactPoint(left) : ContactPoint(right);
+            if (leftWeight > 0 && rightWeight > 0)
+                target = Mix(target, ContactPoint(right), rightWeight / (leftWeight + rightWeight));
+
+            // ContactPoint and the posed head are in the same pre-mirror scene.
+            // Aim from between the eyes in the original portrait's coordinates.
+            Matrix sceneToFace = FacePlacement;
+            sceneToFace.Append(head);
+            sceneToFace.Invert();
+            Vector direction = sceneToFace.Transform(target) - new Point(855, 323);
+            direction.Normalize();
+            double focus = Math.Min(1, weight * 1.6);
+            focus = focus * focus * (3 - 2 * focus);
+            return Mix(mouseGaze, new Point(direction.X * 29, direction.Y * 27), focus);
+        }
+
         double SceneScale { get { return Math.Min(ActualWidth / SceneWidth, ActualHeight / SceneHeight); } }
 
         Point StagePoint(Point local)
@@ -299,7 +324,7 @@ namespace PawTrail
             dc.DrawGeometry(furGrain, null, Shape(SittingCoat));
             dc.Pop();
             dc.PushTransform(new MatrixTransform(pose.Head));
-            DrawPortrait(dc);
+            DrawPortrait(dc, PupilOffset(pose.Head));
             dc.Pop();
             if (mouseOnLeft) dc.Pop();
 

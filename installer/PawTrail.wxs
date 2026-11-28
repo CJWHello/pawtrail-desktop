@@ -2,9 +2,9 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <!-- Keep UpgradeCode and component GUIDs across releases. Give each new
        product version a new Product Id; keep it stable for this release. -->
-  <Product Id="{701B6CD5-90BA-4E41-B229-3094283F0A57}"
+  <Product Id="{8FE0C298-F056-459D-AC11-5C8620CBD5EE}"
            UpgradeCode="{9BAADCA6-1F65-4AC8-8B09-C8A722A1F702}"
-           Name="爪印小屋" Manufacturer="PawTrail" Version="1.0.4"
+           Name="爪印小屋" Manufacturer="PawTrail" Version="1.0.5"
            Language="2052" Codepage="936">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser"
              InstallPrivileges="limited" SummaryCodepage="936"
