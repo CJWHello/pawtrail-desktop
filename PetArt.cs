@@ -270,8 +270,9 @@ namespace PawTrail
         public bool HitHead(Point localPos)
         {
             Point p = StagePoint(localPos);
-            if (mouseOnLeft) p.X = MirrorWidth - p.X;
-            var inverse = GetPose().Head;
+            bool walking = march >= .5;
+            if (!walking && mouseOnLeft) p.X = MirrorWidth - p.X;
+            var inverse = walking ? WalkHeadMatrix(StepAngle()) : GetPose().Head;
             inverse.Invert();
             p = inverse.Transform(p);
             Matrix face = FacePlacement;
@@ -283,6 +284,7 @@ namespace PawTrail
 
         public bool NearKeyboard(Point localPos)
         {
+            if (march >= .5) return false;
             var p = StagePoint(localPos);
             return new Rect(43 + KeyboardOffset,993,1324,403).Contains(p);
         }
@@ -295,6 +297,24 @@ namespace PawTrail
             dc.PushTransform(new MatrixTransform(s,0,0,s,
                 (ActualWidth - SceneWidth*s)/2 - SceneLeft*s,
                 (ActualHeight - SceneHeight*s)/2 - SceneTop*s));
+            if (march < 1)
+            {
+                if (march > 0) dc.PushOpacity(1 - march);
+                DrawSeatedScene(dc);
+                if (march > 0) dc.Pop();
+            }
+            if (march > 0)
+            {
+                if (march < 1) dc.PushOpacity(march);
+                DrawMarch(dc);
+                if (march < 1) dc.Pop();
+            }
+            dc.Pop();
+            if (march == 0) DrawKeyFeedback(dc);
+        }
+
+        void DrawSeatedScene(DrawingContext dc)
+        {
             PoseData pose = GetPose();
             Matrix inverse = pose.Body;
             inverse.Invert();
@@ -352,8 +372,7 @@ namespace PawTrail
             dc.Pop();
             dc.Pop();
             if (doze > .62) DrawSleepMarks(dc);
-            dc.Pop();
-            DrawKeyFeedback(dc);
+            DrawGuests(dc);
         }
 
         static void DrawCatShadow(DrawingContext dc)

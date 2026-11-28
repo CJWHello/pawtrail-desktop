@@ -21,10 +21,18 @@ namespace PawTrail
         private bool leftHeld, rightHeld, buttonHeld;
         private double leftRelease = -10, rightRelease = -10, buttonRelease = -10;
         private double targetX, targetY, lastMove = -10, scrollAt = -10, scrollDirection;
+        private enum WordPrefix { None, C, Ca, B, Bi, Bir }
+        private WordPrefix wordPrefix;
+        private double prefixExpires, kittenUntil, crowUntil;
+        private static readonly KeyCap[] shortcutKeys = Array.FindAll(KeyboardLayout.Keys,
+            k => k.Label == "Ctrl" || k.Label == "Alt" || k.Label == "Win");
+
+        public double KittenVisit { get; private set; }
+        public double CrowVisit { get; private set; }
 
         public int LeftPawKey = -1, RightPawKey = -1, MouseButton;
         public double LeftPawPress, RightPawPress, Click, MouseX, MouseY, Scroll;
-        public double Petting, Doze, Reach;
+        public double Petting, Doze, Reach, March;
         public double LastActivity { get; private set; }
         public ulong LowKeys, HighKeys;
 
@@ -38,10 +46,15 @@ namespace PawTrail
         public void AdvanceInteraction(double now, double dt, bool nearKeyboard, bool petting, bool interacting)
         {
             if (petting || interacting || leftHeld || rightHeld || buttonHeld) ObserveInput(now);
-            bool sleeping = ReadyToSleep(now);
-            Doze = Approach(Doze, sleeping, sleeping ? 1.4 : 14, dt);
+            bool resting = ReadyToSleep(now);
+            bool walking = now - LastActivity >= 300;
+            bool sleeping = resting && !walking;
+            // Residual sleep posture would pull the paw away from its first key.
+            if (!resting && (March > 0 || LeftPawPress > 0 || RightPawPress > 0)) Doze = 0;
+            else Doze = Approach(Doze, sleeping, sleeping ? 1.4 : 14, dt);
+            March = walking ? Approach(March, true, 2.8, dt) : 0;
             Petting = Approach(Petting, petting, 12, dt);
-            Reach = Approach(Reach, nearKeyboard && !sleeping && !petting && !interacting, 8, dt);
+            Reach = Approach(Reach, nearKeyboard && !resting && !petting && !interacting, 8, dt);
         }
 
         private static double Approach(double value, bool active, double rate, double dt)
@@ -59,6 +72,43 @@ namespace PawTrail
             priority[id] = pressed ? ++sequence : 0;
             if (pressed) lightUntil[id] = now + .09;
             UpdateTypingPaws(now);
+        }
+
+        public void KeyboardPacket(int id, int virtualKey, bool pressed, double now)
+        {
+            Key(id, pressed, now);
+            if (!pressed) return;
+            foreach (KeyCap modifier in shortcutKeys)
+            {
+                if (!down[modifier.Id]) continue;
+                wordPrefix = WordPrefix.None;
+                return;
+            }
+            // Shift and Caps Lock only change case. Windows reports Latin
+            // letter virtual keys in uppercase for either case.
+            if (virtualKey == 0x10 || virtualKey == 0xA0 || virtualKey == 0xA1 || virtualKey == 0x14) return;
+            if (now >= prefixExpires) wordPrefix = WordPrefix.None;
+            switch (virtualKey)
+            {
+                case 'C': wordPrefix = WordPrefix.C; break;
+                case 'B': wordPrefix = WordPrefix.B; break;
+                case 'A': wordPrefix = wordPrefix == WordPrefix.C ? WordPrefix.Ca : WordPrefix.None; break;
+                case 'I': wordPrefix = wordPrefix == WordPrefix.B ? WordPrefix.Bi : WordPrefix.None; break;
+                case 'R': wordPrefix = wordPrefix == WordPrefix.Bi ? WordPrefix.Bir : WordPrefix.None; break;
+                default:
+                    if (virtualKey == 'T' && wordPrefix == WordPrefix.Ca) kittenUntil = now + 5;
+                    if (virtualKey == 'D' && wordPrefix == WordPrefix.Bir) crowUntil = now + 5;
+                    wordPrefix = WordPrefix.None;
+                    break;
+            }
+            prefixExpires = now + 8;
+        }
+
+        private static double GuestVisibility(double current, double until, double now, double dt)
+        {
+            if (now >= until) return 0;
+            double fade = Math.Min(1, (until - now) / .45);
+            return Math.Min(Approach(current, true, 16, dt), fade * fade * (3 - 2 * fade));
         }
 
         // Standard touch-typing boundaries follow the stagger of each row.
@@ -132,6 +182,7 @@ namespace PawTrail
             mouseHeld[button] = pressed ? ++sequence : 0;
             if (pressed)
             {
+                wordPrefix = WordPrefix.None;
                 MouseButton = button;
                 buttonHeld = true;
             }
@@ -156,6 +207,9 @@ namespace PawTrail
 
         public void Advance(double now, double dt)
         {
+            if (now >= prefixExpires) wordPrefix = WordPrefix.None;
+            KittenVisit = GuestVisibility(KittenVisit, kittenUntil, now, dt);
+            CrowVisit = GuestVisibility(CrowVisit, crowUntil, now, dt);
             LowKeys = HighKeys = 0;
             for (int i = 0; i < down.Length && i < 128; ++i)
             {
@@ -295,9 +349,11 @@ namespace PawTrail
             target.MouseButton = pose.MouseButton;
             target.Scroll = pose.Scroll;
             target.Reach = pose.Reach;
+            target.March = pose.March;
             target.Petting = pose.Petting;
             target.Doze = pose.Doze;
             target.SetKeyboardPose(pose.LeftPawKey, pose.LeftPawPress, pose.RightPawKey, pose.RightPawPress, pose.LowKeys, pose.HighKeys);
+            target.SetGuests(pose.KittenVisit, pose.CrowVisit);
         }
 
         private static void AddCommand(ContextMenu target, string label, Action action)
@@ -372,7 +428,7 @@ namespace PawTrail
                 {
                     int id = KeyboardLayout.Resolve(scan, flags, vk);
                     bool pressed = (flags & 1) == 0;
-                    pose.Key(id, pressed, now);
+                    pose.KeyboardPacket(id, vk, pressed, now);
                     // Some Pause keys send only a make sequence.
                     if (pressed && vk == 0x13) pose.Key(id, false, now);
                 }
@@ -467,7 +523,7 @@ namespace PawTrail
             }
             // A button may already be down at startup, or pressed while sync is paused.
             // Check only at sleep onset. The aggregate result is discarded immediately.
-            if (pose.Doze == 0 && pose.ReadyToSleep(now) && AnyButtonDown()) pose.ObserveInput(now);
+            if (pose.Doze == 0 && pose.March == 0 && pose.ReadyToSleep(now) && AnyButtonDown()) pose.ObserveInput(now);
             ScreenPoint cursor;
             bool near = placed && art.IsLoaded && GetCursorPos(out cursor) &&
                         art.NearKeyboard(art.PointFromScreen(new Point(cursor.X, cursor.Y)));
